@@ -59,6 +59,19 @@ df[col_stock] = pd.to_numeric(df[col_stock], errors='coerce').fillna(0)
 df[col_sales] = pd.to_numeric(df[col_sales], errors='coerce').fillna(0)
 df['نقطة إعادة الطلب'] = ((df[col_sales] * df[col_lead]) * (1 + safety_factor/100)).round(1)
 
+# دالة التلوين الشرطي
+def color_cells(val):
+    if isinstance(val, (int, float)):
+        if val <= 5: # مثال: تلوين القيم الأقل من أو تساوي 5 بالأحمر
+            return 'color: red'
+        else: # مثال: تلوين القيم الأكبر من 5 بالأخضر
+            return 'color: green'
+    else:
+        return ''
+
+# تطبيق التلوين الشرطي على الجدول
+styled_df = df.style.applymap(color_cells, subset=[col_stock])
+
 # 5. التبويبات
 tab1, tab2, tab3 = st.tabs(["📊 نظرة عامة", "🔮 التنبؤ الذكي", "🥀 الرواكد والبدائل"])
 
@@ -80,7 +93,7 @@ with tab1:
         fig2 = px.line(df, x=col_name, y=[col_stock, 'نقطة إعادة الطلب'], markers=True, template="plotly_dark")
         fig2.update_layout(xaxis_tickangle=-45, margin=dict(b=100))
         st.plotly_chart(fig2, use_container_width=True)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(styled_df, use_container_width=True)
 
 with tab2:
     st.header("🔮 التنبؤ الذكي بالمبيعات")
@@ -93,7 +106,8 @@ with tab3:
     # جدول الأصناف الحرجة
     st.subheader("⚠️ الأصناف الحرجة (يجب طلبها فوراً)")
     critical_df = df[df[col_stock] <= df['نقطة إعادة الطلب']]
-    st.dataframe(critical_df[[col_name, col_stock, 'نقطة إعادة الطلب']], use_container_width=True)
+    styled_critical_df = critical_df.style.applymap(color_cells, subset=[col_stock])
+    st.dataframe(styled_critical_df[[col_name, col_stock, 'نقطة إعادة الطلب']], use_container_width=True)
     
     # جدول الأصناف الراكدة
     st.subheader("🥀 الأصناف الراكدة (تجميد رأس مال)")
