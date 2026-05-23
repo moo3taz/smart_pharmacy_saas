@@ -101,20 +101,29 @@ try:
         st.divider()
         
         # الرسوم البيانية المتناسقة
-        chart_col1, chart_col2 = st.columns(2)
         with chart_col1:
-            st.markdown("##### 📈 مقارنة متوسط المبيعات اليومي لكل دواء")
-            fig_sales = px.bar(df, x=col_name, y=col_sales, color='حالة القرار',
-                               color_discrete_map={'⚠️ اطلب فوراً (مخزون حرج)': '#FF4B4B', '✅ المخزون آمن': '#00F59B'}, template="plotly_dark")
-            fig_sales.update_layout(xaxis_tickangle=0, margin=dict(t=20, b=20, l=20, r=20))
-            st.plotly_chart(fig_sales, use_container_width=True)
-            
-        with chart_col2:
-            st.markdown("##### 📉 المخزون الحالي مقارنة بالحد الحرج")
-            fig_stock = px.line(df, x=col_name, y=[col_stock, 'نقطة إعادة الطلب'], markers=True, template="plotly_dark")
-            fig_stock.update_layout(xaxis_tickangle=0, margin=dict(t=20, b=20, l=20, r=20))
-            st.plotly_chart(fig_stock, use_container_width=True)
-
+        st.markdown("##### 📈 مقارنة متوسط المبيعات اليومي لكل دواء")
+        fig_sales = px.bar(df, x=col_name, y=col_sales, color='حالة القرار',
+                           color_discrete_map={'⚠️ اطلب فوراً (مخزون حرج)': '#FF4B4B', '✅ المخزون آمن': '#00F59B'}, 
+                           template="plotly_dark")
+        
+        # التعديل هنا:
+        fig_sales.update_layout(
+            xaxis_tickangle=-45,  # ميل الأسماء بـ 45 درجة
+            margin=dict(t=50, b=100, l=50, r=50) # زيادة الهامش السفلي عشان الأسماء
+        )
+        st.plotly_chart(fig_sales, use_container_width=True)
+        
+    with chart_col2:
+        st.markdown("##### 📉 المخزون الحالي مقارنة بالحد الحرج")
+        fig_stock = px.line(df, x=col_name, y=[col_stock, 'نقطة إعادة الطلب'], markers=True, template="plotly_dark")
+        
+        # التعديل هنا:
+        fig_stock.update_layout(
+            xaxis_tickangle=-45,
+            margin=dict(t=50, b=100, l=50, r=50)
+        )
+        st.plotly_chart(fig_stock, use_container_width=True)
         st.divider()
         
         # الجدول والتحميل
