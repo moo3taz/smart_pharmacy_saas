@@ -6,10 +6,33 @@ import plotly.express as px
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="Smart Pharmacy SaaS Pro", page_icon="💊", layout="wide")
 
+# 2. منطق تسجيل الدخول (Login System)
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.sidebar.title("🔐 تسجيل الدخول")
+    user = st.sidebar.text_input("اسم المستخدم")
+    pw = st.sidebar.text_input("كلمة المرور", type="password")
+    if st.sidebar.button("دخول"):
+        # يمكنك تغيير اسم المستخدم وكلمة المرور من هنا
+        if user == "admin" and pw == "123":
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.error("بيانات الدخول غير صحيحة")
+    st.stop() # إيقاف الكود هنا إذا لم يتم تسجيل الدخول
+
+# --- بعد تسجيل الدخول بنجاح ---
 st.title("🚀 نظام Smart Pharmacy SaaS الاحترافي")
 st.markdown("---")
 
-# 2. إعدادات السايدبار
+# زر تسجيل الخروج في السايدبار
+if st.sidebar.button("تسجيل خروج"):
+    st.session_state.logged_in = False
+    st.rerun()
+
+# 3. إعدادات السايدبار
 with st.sidebar:
     st.header("📁 تحميل البيانات")
     uploaded_file = st.file_uploader("ارفع ملف المخزون (Excel/CSV)", type=["csv", "xlsx"])
@@ -18,7 +41,7 @@ with st.sidebar:
     safety_factor = st.slider("نسبة مخزون الأمان الإضافي (%)", 0, 100, 25, 5)
     forecast_months = st.slider("فترة التنبؤ المستقبلي (شهور)", 1, 6, 3)
 
-# 3. معالجة البيانات
+# 4. معالجة البيانات
 if uploaded_file is None:
     st.info("💡 قم برفع ملف البيانات لتفعيل التحليل الفعلي.")
     df = pd.DataFrame([
@@ -39,7 +62,7 @@ else:
     col_history = c5.selectbox("مبيعات 3 شهور", cols, index=4)
     col_active = c6.selectbox("المادة الفعالة", cols, index=5)
 
-# 4. محرك الحسابات
+# 5. محرك الحسابات
 df[col_stock] = pd.to_numeric(df[col_stock], errors='coerce').fillna(0)
 df[col_sales] = pd.to_numeric(df[col_sales], errors='coerce').fillna(0)
 df[col_lead] = pd.to_numeric(df[col_lead], errors='coerce').fillna(3)
@@ -48,7 +71,7 @@ base_reorder = df[col_sales] * df[col_lead]
 df['نقطة إعادة الطلب'] = (base_reorder + (base_reorder * (safety_factor / 100))).round(1)
 df['حالة القرار'] = np.where(df[col_stock] <= df['نقطة إعادة الطلب'], '⚠️ اطلب فوراً', '✅ آمن')
 
-# 5. التبويبات
+# 6. التبويبات
 tab1, tab2, tab3 = st.tabs(["📋 لوحة التحكم", "🔮 التنبؤ", "🥀 الرواكد والبدائل"])
 
 with tab1:
@@ -71,10 +94,8 @@ with tab2:
 
 with tab3:
     st.header("🔄 البدائل والرواكد")
-    # رواكد
     dead = df[(df[col_history] == 0) & (df[col_stock] > 0)]
     st.write("الأصناف الراكدة:", dead)
-    # بدائل
     missing = df[df[col_stock] == 0][col_name].tolist()
     if missing:
         sel = st.selectbox("اختار دواء ناقص:", missing)
