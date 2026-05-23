@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-
+ 
 # 1. إعدادات الصفحة الاحترافية
 st.set_page_config(page_title="Smart Pharmacy SaaS", page_icon="💊", layout="wide")
 
