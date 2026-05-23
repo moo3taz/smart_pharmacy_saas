@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# 1. إعدادات الصفحة الاحترافية
+# 1. إعدادات الصفحة
 st.set_page_config(page_title="Smart Pharmacy SaaS", layout="wide")
 
 # 2. منطق تسجيل الدخول
@@ -26,7 +26,6 @@ if not st.session_state.logged_in:
 st.title("💊 لوحة تحكم صيدليتك الذكية")
 st.markdown("---")
 
-# السايدبار للتحميل والإعدادات
 with st.sidebar:
     st.header("⚙️ إعدادات النظام")
     uploaded_file = st.file_uploader("ارفع ملف المخزون", type=["csv", "xlsx"])
@@ -60,17 +59,18 @@ df[col_stock] = pd.to_numeric(df[col_stock], errors='coerce').fillna(0)
 df[col_sales] = pd.to_numeric(df[col_sales], errors='coerce').fillna(0)
 df['نقطة إعادة الطلب'] = ((df[col_sales] * df[col_lead]) * (1 + safety_factor/100)).round(1)
 
-# كروت الـ KPIs
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("إجمالي الأصناف", len(df))
-k2.metric("أصناف حرجة", len(df[df[col_stock] <= df['نقطة إعادة الطلب']]))
-k3.metric("مخزون راكد", len(df[df[col_history] == 0]))
-k4.metric("مبيعات متوقعة", f"{(df[col_sales].sum()*30*forecast_months):,.0f} ج.م")
-
 # 5. التبويبات
 tab1, tab2, tab3 = st.tabs(["📊 نظرة عامة", "🔮 التنبؤ الذكي", "🥀 الرواكد والبدائل"])
 
 with tab1:
+    # كروت الـ KPIs
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("إجمالي الأصناف", len(df))
+    k2.metric("أصناف حرجة", len(df[df[col_stock] <= df['نقطة إعادة الطلب']]))
+    k3.metric("مخزون راكد", len(df[df[col_history] == 0]))
+    k4.metric("مبيعات متوقعة", f"{(df[col_sales].sum()*30*forecast_months):,.0f} ج.م")
+    
+    st.markdown("---")
     col_a, col_b = st.columns(2)
     with col_a:
         fig1 = px.bar(df, x=col_name, y=col_sales, template="plotly_dark")
@@ -83,17 +83,30 @@ with tab1:
     st.dataframe(df, use_container_width=True)
 
 with tab2:
-    st.header("🔮 التنبؤ الذكي")
+    st.header("🔮 التنبؤ الذكي بالمبيعات")
     df['متوقع'] = (df[col_sales] * 30 * forecast_months).round(0)
     st.dataframe(df[[col_name, 'متوقع']], use_container_width=True)
 
 with tab3:
-    st.header("🔄 إدارة الرواكد والبدائل")
+    st.header("🔄 إدارة الرواكد والأصناف الحرجة")
+    
+    # جدول الأصناف الحرجة
+    st.subheader("⚠️ الأصناف الحرجة (يجب طلبها فوراً)")
+    critical_df = df[df[col_stock] <= df['نقطة إعادة الطلب']]
+    st.dataframe(critical_df[[col_name, col_stock, 'نقطة إعادة الطلب']], use_container_width=True)
+    
+    # جدول الأصناف الراكدة
+    st.subheader("🥀 الأصناف الراكدة (تجميد رأس مال)")
+    dead_df = df[df[col_history] == 0]
+    st.dataframe(dead_df[[col_name, col_stock]], use_container_width=True)
+    
+    st.markdown("---")
     # منطق البدائل
     missing = df[df[col_stock] == 0][col_name].tolist()
     if missing:
-        sel = st.selectbox("اختار دواء ناقص:", missing)
+        st.subheader("🔍 صائد البدائل الذكي")
+        sel = st.selectbox("اختار دواء ناقص لمعرفة بدائله:", missing)
         active = df[df[col_name] == sel][col_active].values[0]
         alts = df[(df[col_active] == active) & (df[col_name] != sel) & (df[col_stock] > 0)]
-        st.success(f"بدائل الـ {sel} المتاحة:")
+        st.success(f"البدائل المتاحة للـ {sel} في صيدليتك:")
         st.dataframe(alts[[col_name, col_stock]], use_container_width=True)
