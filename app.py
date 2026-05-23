@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
+# 1. إعدادات الصفحة
 st.set_page_config(page_title="Smart Pharmacy SaaS", layout="wide")
 
-# منطق تسجيل الدخول
+# 2. منطق تسجيل الدخول
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if not st.session_state.logged_in:
     st.sidebar.title("🔐 تسجيل الدخول")
@@ -18,17 +19,17 @@ if not st.session_state.logged_in:
         else: st.error("بيانات الدخول غير صحيحة")
     st.stop()
 
+# 3. إعدادات النظام
 st.title("💊 لوحة تحكم صيدليتك الذكية")
-
 with st.sidebar:
     uploaded_file = st.file_uploader("ارفع ملف المخزون", type=["csv", "xlsx"])
-    safety_factor = st.slider("مخزون الأمان (%)", 0, 100, 25)
     if st.button("تسجيل خروج"): st.session_state.logged_in = False; st.rerun()
 
+# 4. المعالجة
 if uploaded_file:
-    # 1. قراءة الملف مع معالجة الأسماء المكررة
+    # قراءة الملف ومعالجة أي تكرار في أسماء الأعمدة فوراً
     df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else pd.read_csv(uploaded_file)
-    df = df.loc[:, ~df.columns.duplicated()] # حل مشكلة التكرار
+    df = df.loc[:, ~df.columns.duplicated()] 
     
     cols = df.columns.tolist()
     with st.expander("🛠️ ضبط الأعمدة"):
@@ -37,23 +38,25 @@ if uploaded_file:
         col_stock = c2.selectbox("المخزون", cols)
         col_sales = c3.selectbox("البيع اليومي", cols)
         col_lead = st.selectbox("مدة التوريد", cols)
-        col_history = st.selectbox("مبيعات 3 شهور", cols)
+        col_price = st.selectbox("السعر", cols)
 
-    # 2. تحويل البيانات لأرقام (تنظيف آمن)
-    for col in [col_stock, col_sales, col_lead, col_history]:
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    # تنظيف البيانات (تحويل كل شيء لأرقام لمنع أي TypeError)
+    for c in [col_stock, col_sales, col_lead, col_price]:
+        df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
+    
+    # الحسابات
+    df['نقطة_إعادة_الطلب'] = (df[col_sales] * df[col_lead] * 1.25).round(0)
+    df['الحالة'] = np.where(df[col_stock] <= df['نقطة_إعادة_الطلب'], 'نقص', 'آمن')
 
-    # 3. حسابات
-    df['نقطة_إعادة_الطلب'] = ((df[col_sales] * df[col_lead]) * (1 + safety_factor/100)).round(1)
-    df['الحالة'] = np.where(df[col_stock] <= df['نقطة_إعادة_الطلب'], '⚠️ ناقص', '✅ متوفر')
-
-    # 4. عرض البيانات
+    # عرض KPIs
     k1, k2, k3 = st.columns(3)
-    k1.metric("أصناف ناقصة", len(df[df['الحالة'] == '⚠️ ناقص']))
-    k2.metric("إجمالي المخزون", int(df[col_stock].sum()))
-    k3.metric("عدد الأصناف", len(df))
+    k1.metric("إجمالي الأصناف", len(df))
+    k2.metric("أصناف ناقصة", len(df[df['الحالة'] == 'نقص']))
+    k3.metric("قيمة المخزون", f"{int((df[col_stock]*df[col_price]).sum()):,}")
 
+    st.markdown("---")
+    # عرض الجدول (بدون أي تنسيق ستايل يسبب Error)
     st.subheader("📋 تقرير التفاصيل")
     st.dataframe(df, use_container_width=True)
 else:
-    st.info("👋 يرجى رفع ملف المخزون للبدء.")
+    st.info("👋 ارفع ملف المخزون للبدء.")
