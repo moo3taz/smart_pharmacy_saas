@@ -121,4 +121,4 @@ try:
     )
 
 except Exception as e:
-    st.error(f"تأكد من مطابقة الأعمدة بشكل صحيح. تفاصيل الخطأ: {e}")_Avg', 'Days_Left', 'Reorder_Point', 'Status']], use_container_width=True)
+    st.error(f"تأكد من مطابقة الأعمدة بشكل صحيح. تفاصيل الخطأ: {str(e)}")
